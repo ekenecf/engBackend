@@ -122,7 +122,7 @@ export const verify = async (req, res, next) => {
     await user.save();
 
     res
-      .redirect(`http://localhost:3000/users/verifyuser/${user._id}`)
+      .redirect(`https://wazobia-nigeria.netlify.app/users/verifyuser/${user._id}`)
       .res.status(200)
       .json({
         message: "successfully verified",
