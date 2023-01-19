@@ -32,7 +32,7 @@ export const updateText = async (req, res, next) => {
     const updatedText = await Text.findByIdAndUpdate(req.params.textId, req.body, {
       new: true,
     })
-    return res.status(200).json({
+    return res.status(204).json({
       message: 'Successful',
       data: {
         updatedText,
