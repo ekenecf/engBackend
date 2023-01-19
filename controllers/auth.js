@@ -1,6 +1,8 @@
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { validationResult } from "express-validator";
+import crypto from 'crypto'
+
 import User from "../model/user.js";
 import { createError } from "../utils/error.js";
 import sendEmail from "../utils/email.js";
@@ -34,6 +36,7 @@ export const registerUser = async (req, res, next) => {
         });
 
         createUser.token = token;
+        createUser.loggedIn = true;
 
         const verifyUser = `${req.protocol}://${req.get(
           "host"
@@ -74,8 +77,12 @@ export const login = async (req, res, next) => {
     const token = jwt.sign({ id: user._id }, process.env.JWT, {
       expiresIn: "3d",
     });
+    if (user.loggedIn === true)
+    return next(createError(400, "Already signedIn in another device"));
 
     user.token = token;
+    user.loggedIn = true;
+
     user.save()
 
     const { password, ...otherDetails } = user._doc;
@@ -100,6 +107,8 @@ export const logout = async (req, res, next) => {
 
   try {
     user.token = undefined;
+    user.loggedIn = false;
+
     await user.save();
     res.json({ message: "Successfully logged out" });
   } catch (err) {
@@ -109,7 +118,6 @@ export const logout = async (req, res, next) => {
 
 export const verify = async (req, res, next) => {
   try {
-    console.log("user._id");
     const user = await User.findOne({ _id: req.params.id });
     if (!user) return next(createError(400, "No user Found"));
     await User.findByIdAndUpdate(
@@ -122,7 +130,7 @@ export const verify = async (req, res, next) => {
     await user.save();
 
     res
-      .redirect(`https://wazobia-nigeria.netlify.app/users/verifyuser/${user._id}`)
+      .redirect(`http://localhost:3000/users/verifyuser/${user._id}`)
       .res.status(200)
       .json({
         message: "successfully verified",
@@ -152,3 +160,60 @@ export const resendLink = async (req, res, next) => {
     next(err);
   }
 };
+
+export const forgotpassword = async (req, res, next) => {
+  const user = await User.findOne({ email: req.body.email })
+  if (!user) return next(createError(404, 'No user with that email'))
+  const resetToken = user.createResetPassword()
+
+  await user.save({ validateBeforeSave: false })
+  const resetURL = `${req.protocol}://${req.get(
+    'host',
+  )}/users/resetpassword/${resetToken}`
+
+  try {
+    const message = `Forgot your password? kindly click on this link: ${resetURL} to reset your password.
+     \nIf you didnt make this request, simply ignore. Password expires in 10 minutes`
+    sendEmail({
+      email: user.email,
+      subject: 'Your password reset token is valid for 10 mins',
+      message,
+    })
+    res.status(200).json({
+      status: 'success',
+      message: 'Password Reset sent to email!',
+    })
+  } catch (err) {
+    user.resetPasswordToken = undefined
+    user.resetPasswordExpires = undefined
+    await user.save({ validateBeforeSave: false })
+    return next(
+      createError(
+        500,
+        'There was an error sending email, please try again later',
+      ),
+    )
+  }
+}
+
+export const resetpassword = async (req, res, next) => {
+  const hashedToken = crypto
+    .createHash('sha256')
+    .update(req.params.resetToken)
+    .digest('hex')
+  const user = await User.findOne({
+    resetPasswordToken: hashedToken,
+    resetPasswordExpires: { $gt: Date.now() },
+  })
+  if (!user) return next(createError(400, 'Token is invalid or expired'))
+  const salt = bcrypt.genSaltSync(10)
+  user.password = bcrypt.hashSync(req.body.password, salt)
+  user.resetPasswordToken = undefined
+  user.resetPasswordExpires = undefined
+  user.token = undefined
+
+  await user.save()
+  res.status(200).json({
+    status: 'success',
+  })
+}
