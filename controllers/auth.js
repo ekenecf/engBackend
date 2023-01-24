@@ -130,7 +130,7 @@ export const verify = async (req, res, next) => {
     await user.save();
 
     res
-      .redirect(`http://localhost:3000/users/verifyuser/${user._id}`)
+      .redirect(`https://wazobia-nigeria.netlify.app/users/verifyuser/${user._id}`)
       .res.status(200)
       .json({
         message: "successfully verified",
@@ -196,6 +196,17 @@ export const forgotpassword = async (req, res, next) => {
   }
 }
 
+export const getpasswordLink = async (req, res, next) => {
+  const token = req.params.resetToken
+
+  res
+  .redirect(`https://wazobia-nigeria.netlify.app/users/resetpassword/${token}`)
+  .status(200)
+  .json({
+    message: "Redirected to reset password",
+  });
+}
+
 export const resetpassword = async (req, res, next) => {
   const hashedToken = crypto
     .createHash('sha256')
@@ -214,6 +225,6 @@ export const resetpassword = async (req, res, next) => {
 
   await user.save()
   res.status(200).json({
-    status: 'success',
+    status: 'successfully updated Password',
   })
 }
