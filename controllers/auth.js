@@ -22,7 +22,7 @@ export const registerUser = async (req, res, next) => {
         const data = {
           firstName: req.body.firstName,
           lastName: req.body.lastName,
-          email: req.body.email,
+          email: email.toLowerCase(),
           password: hash,
         };
         const errors = validationResult(req);
@@ -66,7 +66,8 @@ export const registerUser = async (req, res, next) => {
 
 export const login = async (req, res, next) => {
   try {
-    const user = await User.findOne({ email: req.body.email });
+    const userEmail = req.body.email.toLowerCase()
+    const user = await User.findOne({ email: userEmail });
     if (!user) return next(createError(404, "User not found"));
     const isPasswordCorrect = await bcrypt.compare(
       req.body.password,
