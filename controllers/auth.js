@@ -36,7 +36,7 @@ export const registerUser = async (req, res, next) => {
         });
 
         createUser.token = token;
-        // createUser.loggedIn = true;
+        createUser.loggedIn = true;
 
         const verifyUser = `${req.protocol}://${req.get(
           "host"
@@ -78,11 +78,11 @@ export const login = async (req, res, next) => {
     const token = jwt.sign({ id: user._id }, process.env.JWT, {
       expiresIn: "3d",
     });
-    // if (user.loggedIn === true)
-    // return next(createError(400, "Already signedIn in another device"));
+    if (user.loggedIn === true)
+    return next(createError(400, "Already signedIn in another device"));
 
     user.token = token;
-    // user.loggedIn = true;
+    user.loggedIn = true;
 
     user.save()
 
@@ -108,10 +108,23 @@ export const logout = async (req, res, next) => {
 
   try {
     user.token = undefined;
-    // user.loggedIn = false;
+    user.loggedIn = false;
 
     await user.save();
     res.json({ message: "Successfully logged out" });
+  } catch (err) {
+    next(err)
+  }
+};
+
+export const logoutFromAllDevices = async (req, res, next) => {
+  const userEmail = req.body.email
+  const user = await User.findOne({email: userEmail.toLowerCase()});
+
+  try {
+    user.loggedIn = false;
+    await user.save();
+    res.status(200).json({ message: "Successfully logged-out from all devices" });
   } catch (err) {
     next(err)
   }
