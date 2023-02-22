@@ -79,7 +79,7 @@ export const login = async (req, res, next) => {
       expiresIn: "3d",
     });
     if (user.loggedIn === true)
-    return next(createError(400, "Already signedIn in another device"));
+    return next(createError(400, 'Already signedIn on another device'));
 
     user.token = token;
     user.loggedIn = true;
