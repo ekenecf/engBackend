@@ -1,6 +1,6 @@
 import express from 'express'
 import { check } from 'express-validator'
-import { login, registerUser, resendLink, logout } from '../controllers/auth.js'
+import { login, registerUser, resendLink, logout, logoutFromAllDevices } from '../controllers/auth.js'
 
 const router = express.Router()
 
@@ -19,5 +19,6 @@ router
 router.route("/login").post(login);
 router.route("/resendLink/:id").post(resendLink);
 router.route("/logout/:Id").post(logout);
+router.route("/logoutalldevices").post(logoutFromAllDevices);
 
 export default router
